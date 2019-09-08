@@ -1,0 +1,12 @@
+﻿<Application x:Class="RpiHelpers.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:RpiHelpers"
+             xmlns:converters="clr-namespace:RpiHelpers.Mvvm.Converters"
+             StartupUri="MainView.xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
