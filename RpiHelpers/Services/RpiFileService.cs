@@ -9,27 +9,102 @@ namespace RpiHelpers.Services
 {
     class RpiFileService
     {
+        private const string CopyCommand = "scp";
         private const string AllFilesFilter = "*";
         private readonly CommandExecutor _cmdExecutor;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RpiFileService"/> class.
+        /// </summary>
+        /// <param name="commandExecutor">
+        /// Used to execute shell commands.
+        /// </param>
         public RpiFileService(CommandExecutor commandExecutor)
         {
             _cmdExecutor = commandExecutor ?? throw new ArgumentNullException(nameof(commandExecutor));
         }
 
+        /// <summary>
+        /// Copies a file from the specified <paramref name="sourcePath"/> to the specified
+        /// <paramref name="targetPath"/> on the Raspberry Pi device with the specified
+        /// <paramref name="rpiConfig"/>.
+        /// </summary>
+        /// <param name="sourcePath">
+        /// The path to the file to be copied.
+        /// </param>
+        /// <param name="targetPath">
+        /// The path to which the file will be copied.
+        /// </param>
+        /// <param name="rpiConfig">
+        /// The configuration of the device to which the file will be copied.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// When one or more of the required parameters are <c>null</c>.
+        /// </exception>
         public void CopyFile(string sourcePath, string targetPath, RpiConfig rpiConfig)
         {
-            const string CopyCommand = "scp";
+            if (string.IsNullOrEmpty(sourcePath))
+            {
+                throw new ArgumentNullException(sourcePath);
+            }
+
+            if (string.IsNullOrEmpty(targetPath))
+            {
+                throw new ArgumentNullException(nameof(targetPath));
+            }
 
             _cmdExecutor.Execute($"{CopyCommand} {sourcePath.Replace('/', '\\')} pi@raspberry.local:~\\{targetPath.Replace('/', '\\')}");
         }
 
+        /// <summary>
+        /// Moves a file from the specified <paramref name="sourcePath"/> to the specified
+        /// <paramref name="targetPath"/> on the Raspberry Pi device with the specified
+        /// <paramref name="rpiConfig"/>. The local file with path <paramref name="sourcePath"/>
+        /// will be deleted.
+        /// </summary>
+        /// <param name="sourcePath">
+        /// The path to the file to be moved.
+        /// </param>
+        /// <param name="targetPath">
+        /// The path to which the file will be moved.
+        /// </param>
+        /// <param name="rpiConfig">
+        /// The configuration of the device to which the file will be moved.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// When one or more of the required parameters are <c>null</c>.
+        /// </exception>
         public void MoveFile(string sourcePath, string targetPath, RpiConfig rpiConfig)
         {
+            if (string.IsNullOrEmpty(sourcePath))
+            {
+                throw new ArgumentNullException(nameof(sourcePath));
+            }
 
+            if (string.IsNullOrEmpty(targetPath))
+            {
+                throw new ArgumentNullException(nameof(targetPath));
+            }
         }
 
-        public void CopyDirectory(string sourcePath, string targetPath, RpiConfig rpiConfig, bool recursive = true)
+        /// <summary>
+        /// Copies a directory and all its subdirectories and files from the specified <paramref name="sourcePath"/>
+        /// to the specified <paramref name="targetPath"/> on the Raspberry Pi device with the
+        /// specified <paramref name="rpiConfig"/>.
+        /// </summary>
+        /// <param name="sourcePath">
+        /// The path to the directory to be copied.
+        /// </param>
+        /// <param name="targetPath">
+        /// The path to which the directory will be copied.
+        /// </param>
+        /// <param name="rpiConfig">
+        /// The configuration of the device to which the directory will be copied.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// When one or more of the required parameters are <c>null</c>.
+        /// </exception>
+        public void CopyDirectory(string sourcePath, string targetPath, RpiConfig rpiConfig)
         {
             if (string.IsNullOrEmpty(sourcePath))
             {
@@ -42,14 +117,32 @@ namespace RpiHelpers.Services
             }
 
             var dir = new DirectoryInfo(sourcePath);
-            var files = dir.GetFiles(AllFilesFilter, new EnumerationOptions() { RecurseSubdirectories = recursive });
+            var files = dir.GetFiles(AllFilesFilter, new EnumerationOptions() { RecurseSubdirectories = true });
             foreach (var file in files)
             {
                 string target = file.FullName.Replace(sourcePath, targetPath);
             }
         }
 
-        public void MoveDirectory(string sourcePath, string targetPath, RpiConfig rpiConfig, bool recursive = true)
+        /// <summary>
+        /// Moves a directory from the specified <paramref name="sourcePath"/> to the specified
+        /// <paramref name="targetPath"/> with all of its subdirectories and files to the
+        /// specifeid <paramref name="targetPath"/> on the Rasperry Pi device with the
+        /// specified <paramref name="rpiConfig"/>.
+        /// </summary>
+        /// <param name="sourcePath">
+        /// The path to the directory to be moved.
+        /// </param>
+        /// <param name="targetPath">
+        /// The path to which the directory will be moved.
+        /// </param>
+        /// <param name="rpiConfig">
+        /// The configuration of the device to which the directory will be moved.
+        /// </param>
+        /// <remarks>
+        /// This operation will delete the directory and all subdirectories and files from <paramref name="sourcePath"/>.
+        /// </remarks>
+        public void MoveDirectory(string sourcePath, string targetPath, RpiConfig rpiConfig)
         {
             if (string.IsNullOrEmpty(sourcePath))
             {
@@ -62,7 +155,7 @@ namespace RpiHelpers.Services
             }
 
             var dir = new DirectoryInfo(sourcePath);
-            var files = dir.GetFiles(AllFilesFilter, new EnumerationOptions() { RecurseSubdirectories = recursive });
+            var files = dir.GetFiles(AllFilesFilter, new EnumerationOptions() { RecurseSubdirectories = true });
             foreach (var file in files)
             {
                 string target = file.FullName.Replace(sourcePath, targetPath);

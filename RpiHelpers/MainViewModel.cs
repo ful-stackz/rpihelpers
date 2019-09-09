@@ -258,8 +258,7 @@ namespace RpiHelpers
                     _rpiFileService.CopyDirectory(
                         sourcePath: payload.FullPath,
                         targetPath: TargetPath,
-                        rpiConfig: rpiConfig,
-                        recursive: IsRecursiveChecked);
+                        rpiConfig: rpiConfig);
                     ShowSnackbarMessage($"Directory {payload.Name} copied successfully! ({processedPayloads}/{totalPayloads})");
                 }
                 else if (payload.IsFile)
@@ -296,8 +295,7 @@ namespace RpiHelpers
                     _rpiFileService.MoveDirectory(
                         sourcePath: payload.FullPath,
                         targetPath: TargetPath,
-                        rpiConfig: rpiConfig,
-                        recursive: IsRecursiveChecked);
+                        rpiConfig: rpiConfig);
                     ShowSnackbarMessage($"Directory {payload.Name} moved successfully! ({processedPayloads}/{totalPayloads})");
                 }
                 else if (payload.IsFile)
