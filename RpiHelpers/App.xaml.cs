@@ -17,9 +17,9 @@ namespace RpiHelpers
     {
         protected override void OnStartup(StartupEventArgs e)
         {
-            IoT.Register<DropDataService>(new DropDataService());
-            IoT.Register<RpiFileService>(new RpiFileService(new CommandExecutor()));
-            IoT.Register<RpiConfigService>(new RpiConfigService());
+            IoC.Register<DropDataService>(new DropDataService());
+            IoC.Register<RpiFileService>(new RpiFileService(new CommandExecutor()));
+            IoC.Register<RpiConfigService>(new RpiConfigService());
             base.OnStartup(e);
         }
     }

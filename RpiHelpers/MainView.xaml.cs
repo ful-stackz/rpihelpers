@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -25,7 +24,9 @@ namespace RpiHelpers
         public MainView()
         {
             InitializeComponent();
-            DataContext = new MainViewModel();
+            DataContext = new MainViewModel(
+                IoC.Get<RpiFileService>(),
+                IoC.Get<DropDataService>());
         }
 
         private void DropActionHandler(object sender, DragEventArgs e)
@@ -33,15 +34,10 @@ namespace RpiHelpers
             var files = (string[])e.Data.GetData("FileDrop");
             if (files.Length > 0)
             {
-                IoT.Get<DropDataService>().Drop(
-                    fileNames: files,
-                    isDirectory: !IsFilePath(files[0]));
+                IoC.Get<DropDataService>().Drop(fileNames: files);
             }
 
             Activate();
         }
-
-        private static bool IsFilePath(string path) =>
-            Regex.IsMatch(path, @"(\w+\.?)+\.\w+$");
     }
 }

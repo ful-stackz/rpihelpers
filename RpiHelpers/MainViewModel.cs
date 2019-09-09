@@ -14,29 +14,33 @@ namespace RpiHelpers
 {
     class MainViewModel : BaseViewModel
     {
-        private const string EmptyDropActionMessage = "Drop files here for actions";
+        private const string EmptyTargetPath = "/";
+        private const string EmptyDropActionMessage = "Drop file(s) here for actions";
         private static readonly TimeSpan SnackbarTimerPeriod = TimeSpan.FromSeconds(2);
 
+        private readonly DropDataService _dropDataService;
         private readonly RpiFileService _rpiFileService;
         private readonly Timer _snackbarTimer;
 
         private bool _isClearEnabled;
-        private bool _isDirectorySelected;
+        private bool _isDirectoryOptionsEnabled;
         private bool _isRecursiveEnabled;
         private bool _isInError;
-        private string _targetPath;
+        private string _targetPath = EmptyTargetPath;
         private string _dropActionMessage = EmptyDropActionMessage;
         private ObservableCollection<ActionButton> _availableActions;
         private ObservableCollection<PayloadModel> _payloads = new ObservableCollection<PayloadModel>();
         private ICommand _clearCommand;
         private bool _isSnackbarVisible;
         private string _snackbarText;
+        private bool _isFileOptionsEnabled;
 
-        public MainViewModel()
+        public MainViewModel(RpiFileService rpiFileService, DropDataService dropDataService)
         {
-            IoT.Get<DropDataService>().OnDrop += OnDropHandler;
-            _rpiFileService = IoT.Get<RpiFileService>();
-            _snackbarTimer = new Timer(SnackbarHandleTick, null, SnackbarTimerPeriod, SnackbarTimerPeriod);
+            _rpiFileService = rpiFileService ?? throw new ArgumentNullException(nameof(rpiFileService));
+            _dropDataService = dropDataService ?? throw new ArgumentNullException(nameof(dropDataService));
+            dropDataService.OnDrop += OnDropHandler;
+            _snackbarTimer = new Timer(HandleSnackbarTimerTick, null, SnackbarTimerPeriod, SnackbarTimerPeriod);
         }
 
         public string WindowTitle { get; } = "Raspberry Pi Helpers";
@@ -74,7 +78,7 @@ namespace RpiHelpers
             {
                 if (_targetPath != value)
                 {
-                    _targetPath = value;
+                    _targetPath = string.IsNullOrEmpty(value) ? EmptyTargetPath : value;
                     NotifyPropertyChanged();
                 }
             }
@@ -126,14 +130,27 @@ namespace RpiHelpers
             }
         }
 
-        public bool IsDirectorySelected
+        public bool IsDirectoryOptionsEnabled
         {
-            get => _isDirectorySelected;
+            get => _isDirectoryOptionsEnabled;
             set
             {
-                if (_isDirectorySelected != value)
+                if (_isDirectoryOptionsEnabled != value)
                 {
-                    _isDirectorySelected = value;
+                    _isDirectoryOptionsEnabled = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+
+        public bool IsFileOptionsEnabled
+        {
+            get => _isFileOptionsEnabled;
+            set
+            {
+                if (_isFileOptionsEnabled != value)
+                {
+                    _isFileOptionsEnabled = value;
                     NotifyPropertyChanged();
                 }
             }
@@ -187,34 +204,33 @@ namespace RpiHelpers
 
         private void OnDropHandler(object sender, DropDataEventArgs e)
         {
-            string target = e.IsDirectory ? "directory" : "file";
             AvailableActions = new ObservableCollection<ActionButton>(new ActionButton[]
             {
-                new ActionButton(
-                    caption: $"Copy {target}",
-                    action: CopySource),
-                new ActionButton($"Move {target}", MoveSource),
+                new ActionButton(caption: "Copy", action: CopySource),
+                new ActionButton(caption: "Move", action: MoveSource),
             });
 
             Payloads.Clear();
-            if (e.IsDirectory)
-            {
-                Payloads.Add(new DirectoryPayloadModel(e.FileNames[0], GetDirectoryOrFileName(e.FileNames[0])));
-            }
-            else
-            {
-                e.FileNames
-                    .ToList()
-                    .ForEach(
-                        f => Payloads.Add(
-                            new FilePayloadModel(f, GetDirectoryOrFileName(f))));
-            }
+            e.FileNames
+                .Select(
+                    x => DropDataService.IsFilePath(x)
+                        ? (PayloadModel)new FilePayloadModel(x, GetDirectoryOrFileName(x))
+                        : (PayloadModel)new DirectoryPayloadModel(x, GetDirectoryOrFileName(x)))
+                .ToList()
+                .ForEach(Payloads.Add);
 
-            DropActionMessage = e.IsDirectory
-                ? GetDirectoryOrFileName(e.FileNames[0])
-                : string.Join(Environment.NewLine, e.FileNames);
+            const int MaxDisplayedPaths = 10;
+            var dropActionMessage = string.Join(
+                separator: Environment.NewLine,
+                value: e.FileNames.ToArray(),
+                startIndex: 0,
+                count: e.FileNames.Count > MaxDisplayedPaths ? MaxDisplayedPaths : e.FileNames.Count);
+            DropActionMessage = e.FileNames.Count > MaxDisplayedPaths
+                ? dropActionMessage + $"{Environment.NewLine}{e.FileNames.Count - MaxDisplayedPaths} more"
+                : dropActionMessage;
 
-            IsDirectorySelected = e.IsDirectory;
+            IsDirectoryOptionsEnabled = e.HasOnlyDirectories || e.HasDirectoriesAndFiles;
+            IsFileOptionsEnabled = e.HasOnlyFiles || e.HasDirectoriesAndFiles;
             IsClearEnabled = true;
 
             NotifyPropertyChanged(nameof(AnyActionsAvailable));
@@ -230,7 +246,10 @@ namespace RpiHelpers
                 return;
             }
 
-            var rpiConfig = IoT.Get<RpiConfigService>().RpiConfig;
+            var rpiConfig = IoC.Get<RpiConfigService>().RpiConfig;
+
+            int totalPayloads = Payloads.Count;
+            int processedPayloads = 0;
 
             foreach (var payload in Payloads)
             {
@@ -241,7 +260,7 @@ namespace RpiHelpers
                         targetPath: TargetPath,
                         rpiConfig: rpiConfig,
                         recursive: IsRecursiveChecked);
-                    ShowSnackbarMessage($"Directory {payload.Name} copied successfully!");
+                    ShowSnackbarMessage($"Directory {payload.Name} copied successfully! ({processedPayloads}/{totalPayloads})");
                 }
                 else if (payload.IsFile)
                 {
@@ -249,11 +268,13 @@ namespace RpiHelpers
                         sourcePath: payload.FullPath,
                         targetPath: TargetPath,
                         rpiConfig: rpiConfig);
-                    ShowSnackbarMessage($"File {payload.Name} copied successfully!");
+                    ShowSnackbarMessage($"File {payload.Name} copied successfully! ({processedPayloads}/{totalPayloads})");
                 }
+
+                processedPayloads++;
             }
 
-            ShowSnackbarMessage($"Copy operation successful!");
+            ShowSnackbarMessage($"{totalPayloads} file(s) copied successfully!");
         }
 
         private void MoveSource()
@@ -263,7 +284,10 @@ namespace RpiHelpers
                 return;
             }
 
-            var rpiConfig = IoT.Get<RpiConfigService>().RpiConfig;
+            var rpiConfig = IoC.Get<RpiConfigService>().RpiConfig;
+
+            int totalPayloads = Payloads.Count;
+            int processedPayloads = 0;
 
             foreach (var payload in Payloads)
             {
@@ -274,6 +298,7 @@ namespace RpiHelpers
                         targetPath: TargetPath,
                         rpiConfig: rpiConfig,
                         recursive: IsRecursiveChecked);
+                    ShowSnackbarMessage($"Directory {payload.Name} moved successfully! ({processedPayloads}/{totalPayloads})");
                 }
                 else if (payload.IsFile)
                 {
@@ -281,9 +306,13 @@ namespace RpiHelpers
                         sourcePath: payload.FullPath,
                         targetPath: TargetPath,
                         rpiConfig: rpiConfig);
-                    ShowSnackbarMessage($"File {payload.Name} moved successfully!");
+                    ShowSnackbarMessage($"File {payload.Name} moved successfully! ({processedPayloads}/{totalPayloads})");
                 }
+
+                processedPayloads++;
             }
+
+            ShowSnackbarMessage($"{totalPayloads} file(s) moved successfully!");
         }
 
         private void Clear()
@@ -291,7 +320,7 @@ namespace RpiHelpers
             AvailableActions.Clear();
             DropActionMessage = EmptyDropActionMessage;
             IsClearEnabled = false;
-            IsDirectorySelected = false;
+            IsDirectoryOptionsEnabled = false;
         }
 
         private void ShowSnackbarMessage(string message)
@@ -301,7 +330,7 @@ namespace RpiHelpers
             _snackbarTimer.Change(SnackbarTimerPeriod, SnackbarTimerPeriod);
         }
 
-        private void SnackbarHandleTick(object state)
+        private void HandleSnackbarTimerTick(object state)
         {
             SnackbarText = string.Empty;
             IsSnackbarVisible = false;

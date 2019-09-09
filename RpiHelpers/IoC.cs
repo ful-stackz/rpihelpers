@@ -4,7 +4,7 @@ using System.Text;
 
 namespace RpiHelpers
 {
-    internal static class IoT
+    internal static class IoC
     {
         private static IDictionary<string, object> _registrations = new Dictionary<string, object>();
 

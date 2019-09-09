@@ -17,6 +17,7 @@
             <ColumnDefinition Width="1*" />
             <ColumnDefinition Width="1*" />
         </Grid.ColumnDefinitions>
+
         <Border Grid.Column="0"
                 AllowDrop="True"
                 Background="FloralWhite"
@@ -27,30 +28,53 @@
                    Padding="8"
                    TextWrapping="Wrap"
                    Text="{Binding DropActionMessage}" />
+
         <Grid Grid.Column="1">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
+
             <StackPanel Grid.Row="0">
                 <TextBlock Margin="4 4 4 2">Target path:</TextBlock>
-                <TextBox Text="{Binding TargetPath, UpdateSourceTrigger=PropertyChanged}"
-                         Margin="4 2 4 4" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0"
+                               Margin="4 4 0 4"
+                               Text="pi@raspberrypi.local:~" />
+                    <TextBox Grid.Column="1"
+                             Text="{Binding TargetPath, UpdateSourceTrigger=PropertyChanged}"
+                             Margin="2 4 4 4"
+                             BorderThickness="0 0 0 1" />
+                </Grid>
             </StackPanel>
+
             <Grid Grid.Row="1">
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <StackPanel Grid.Row="0"
-                            Orientation="Vertical">
+                <StackPanel Name="FileOptions"
+                            Grid.Row="0"
+                            Orientation="Vertical"
+                            Visibility="{Binding IsFileOptionsEnabled, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}">
+                </StackPanel>
+                <StackPanel Name="DirectoryOptions"
+                            Grid.Row="1"
+                            Orientation="Vertical"
+                            Visibility="{Binding IsDirectoryOptionsEnabled, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}">
+                    <TextBlock Margin="4">Directory options:</TextBlock>
                     <CheckBox IsChecked="{Binding IsRecursiveChecked}"
-                              Visibility="{Binding IsDirectorySelected, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}"
                               Margin="4"
                               Content="Recursive" />
                 </StackPanel>
-                <ItemsControl Grid.Row="1"
+                <ItemsControl Name="AvailableActions"
+                              Grid.Row="2"
                               Grid.Column="0"
                               ItemsSource="{Binding AvailableActions}">
                     <ItemsControl.ItemsPanel>
@@ -67,7 +91,8 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <Button Grid.Row="2"
+                <Button Name="Clear"
+                        Grid.Row="3"
                         Margin="4"
                         Command="{Binding ClearCommand}"
                         Visibility="{Binding AnyActionsAvailable, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}">
@@ -75,6 +100,7 @@
                 </Button>
             </Grid>
         </Grid>
+
         <Border Background="#66000000"
                 Grid.Row="0"
                 Grid.Column="0"
@@ -89,6 +115,7 @@
                     HorizontalAlignment="Center">
             <TextBlock Foreground="White">Please connect a Raspberry Pi device</TextBlock>
         </StackPanel>
+
         <Grid Name="Snackbar"
               Grid.Row="1"
               Grid.Column="0"
