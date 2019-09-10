@@ -28,7 +28,7 @@ namespace RpiHelpers
         private bool _isInError;
         private string _targetPath = EmptyTargetPath;
         private string _dropActionMessage = EmptyDropActionMessage;
-        private ObservableCollection<ActionButton> _availableActions;
+        private ObservableCollection<ActionButtonModel> _availableActions;
         private ObservableCollection<PayloadModel> _payloads = new ObservableCollection<PayloadModel>();
         private ICommand _clearCommand;
         private bool _isSnackbarVisible;
@@ -179,7 +179,7 @@ namespace RpiHelpers
             }
         }
 
-        public ObservableCollection<ActionButton> AvailableActions
+        public ObservableCollection<ActionButtonModel> AvailableActions
         {
             get => _availableActions;
             set
@@ -204,10 +204,10 @@ namespace RpiHelpers
 
         private void OnDropHandler(object sender, DropDataEventArgs e)
         {
-            AvailableActions = new ObservableCollection<ActionButton>(new ActionButton[]
+            AvailableActions = new ObservableCollection<ActionButtonModel>(new ActionButtonModel[]
             {
-                new ActionButton(caption: "Copy", action: CopySource),
-                new ActionButton(caption: "Move", action: MoveSource),
+                new ActionButtonModel(caption: "Copy", action: CopySource),
+                new ActionButtonModel(caption: "Move", action: MoveSource),
             });
 
             Payloads.Clear();
@@ -332,20 +332,6 @@ namespace RpiHelpers
         {
             SnackbarText = string.Empty;
             IsSnackbarVisible = false;
-        }
-
-        internal class ActionButton
-        {
-            public ActionButton(string caption, Action action)
-            {
-                Caption = caption ?? throw new ArgumentNullException(nameof(caption));
-                Action = action ?? throw new ArgumentNullException(nameof(action));
-            }
-
-            public Action Action { get; }
-            public string Caption { get; }
-            public ICommand Execute =>
-                new Command(_ => Action(), _ => true);
         }
     }
 }
