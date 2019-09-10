@@ -26,7 +26,8 @@ namespace RpiHelpers
             InitializeComponent();
             DataContext = new MainViewModel(
                 IoC.Get<RpiFileService>(),
-                IoC.Get<DropDataService>());
+                IoC.Get<DropDataService>(),
+                IoC.Get<SnackbarService>());
         }
 
         private void DropActionHandler(object sender, DragEventArgs e)

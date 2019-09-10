@@ -16,11 +16,10 @@ namespace RpiHelpers
     {
         private const string EmptyTargetPath = "/";
         private const string EmptyDropActionMessage = "Drop file(s) here for actions";
-        private static readonly TimeSpan SnackbarTimerPeriod = TimeSpan.FromSeconds(2);
 
         private readonly DropDataService _dropDataService;
         private readonly RpiFileService _rpiFileService;
-        private readonly Timer _snackbarTimer;
+        private readonly SnackbarService _snackbarService;
 
         private bool _isClearEnabled;
         private bool _isDirectoryOptionsEnabled;
@@ -31,16 +30,19 @@ namespace RpiHelpers
         private ObservableCollection<ActionButtonModel> _availableActions;
         private ObservableCollection<PayloadModel> _payloads = new ObservableCollection<PayloadModel>();
         private ICommand _clearCommand;
-        private bool _isSnackbarVisible;
-        private string _snackbarText;
         private bool _isFileOptionsEnabled;
 
-        public MainViewModel(RpiFileService rpiFileService, DropDataService dropDataService)
+        public MainViewModel(
+            RpiFileService rpiFileService,
+            DropDataService dropDataService,
+            SnackbarService snackbarService)
         {
             _rpiFileService = rpiFileService ?? throw new ArgumentNullException(nameof(rpiFileService));
             _dropDataService = dropDataService ?? throw new ArgumentNullException(nameof(dropDataService));
             dropDataService.OnDrop += OnDropHandler;
-            _snackbarTimer = new Timer(HandleSnackbarTimerTick, null, SnackbarTimerPeriod, SnackbarTimerPeriod);
+            _snackbarService = snackbarService ?? throw new ArgumentNullException(nameof(snackbarService));
+            _snackbarService.OnMessage += HandleSnackbarChanged;
+            _snackbarService.OnMessageExpired += HandleSnackbarChanged;
         }
 
         public string WindowTitle { get; } = "Raspberry Pi Helpers";
@@ -58,18 +60,8 @@ namespace RpiHelpers
             }
         }
 
-        public string SnackbarText
-        {
-            get => _snackbarText;
-            set
-            {
-                if (_snackbarText != value)
-                {
-                    _snackbarText = value;
-                    NotifyPropertyChanged();
-                }
-            }
-        }
+        public string SnackbarText =>
+            _snackbarService.Message;
 
         public string TargetPath
         {
@@ -166,18 +158,8 @@ namespace RpiHelpers
             }
         }
 
-        public bool IsSnackbarVisible
-        {
-            get => _isSnackbarVisible;
-            set
-            {
-                if (_isSnackbarVisible != value)
-                {
-                    _isSnackbarVisible = value;
-                    NotifyPropertyChanged();
-                }
-            }
-        }
+        public bool IsSnackbarVisible =>
+            _snackbarService.HasMessage;
 
         public ObservableCollection<ActionButtonModel> AvailableActions
         {
@@ -259,7 +241,8 @@ namespace RpiHelpers
                         sourcePath: payload.FullPath,
                         targetPath: TargetPath,
                         rpiConfig: rpiConfig);
-                    ShowSnackbarMessage($"Directory {payload.Name} copied successfully! ({processedPayloads}/{totalPayloads})");
+                    _snackbarService.ShowMessage(
+                        $"Directory {payload.Name} copied successfully! ({processedPayloads}/{totalPayloads})");
                 }
                 else if (payload.IsFile)
                 {
@@ -267,13 +250,14 @@ namespace RpiHelpers
                         sourcePath: payload.FullPath,
                         targetPath: TargetPath,
                         rpiConfig: rpiConfig);
-                    ShowSnackbarMessage($"File {payload.Name} copied successfully! ({processedPayloads}/{totalPayloads})");
+                    _snackbarService.ShowMessage(
+                        $"File {payload.Name} copied successfully! ({processedPayloads}/{totalPayloads})");
                 }
 
                 processedPayloads++;
             }
 
-            ShowSnackbarMessage($"{totalPayloads} file(s) copied successfully!");
+            _snackbarService.ShowMessage($"{totalPayloads} file(s) copied successfully!");
         }
 
         private void MoveSource()
@@ -296,7 +280,8 @@ namespace RpiHelpers
                         sourcePath: payload.FullPath,
                         targetPath: TargetPath,
                         rpiConfig: rpiConfig);
-                    ShowSnackbarMessage($"Directory {payload.Name} moved successfully! ({processedPayloads}/{totalPayloads})");
+                    _snackbarService.ShowMessage(
+                        $"Directory {payload.Name} moved successfully! ({processedPayloads}/{totalPayloads})");
                 }
                 else if (payload.IsFile)
                 {
@@ -304,13 +289,14 @@ namespace RpiHelpers
                         sourcePath: payload.FullPath,
                         targetPath: TargetPath,
                         rpiConfig: rpiConfig);
-                    ShowSnackbarMessage($"File {payload.Name} moved successfully! ({processedPayloads}/{totalPayloads})");
+                    _snackbarService.ShowMessage(
+                        $"File {payload.Name} moved successfully! ({processedPayloads}/{totalPayloads})");
                 }
 
                 processedPayloads++;
             }
 
-            ShowSnackbarMessage($"{totalPayloads} file(s) moved successfully!");
+            _snackbarService.ShowMessage($"{totalPayloads} file(s) moved successfully!");
         }
 
         private void Clear()
@@ -321,17 +307,10 @@ namespace RpiHelpers
             IsDirectoryOptionsEnabled = false;
         }
 
-        private void ShowSnackbarMessage(string message)
+        private void HandleSnackbarChanged(object sender, EventArgs e)
         {
-            SnackbarText = message;
-            IsSnackbarVisible = true;
-            _snackbarTimer.Change(SnackbarTimerPeriod, SnackbarTimerPeriod);
-        }
-
-        private void HandleSnackbarTimerTick(object state)
-        {
-            SnackbarText = string.Empty;
-            IsSnackbarVisible = false;
+            NotifyPropertyChanged(nameof(IsSnackbarVisible));
+            NotifyPropertyChanged(nameof(SnackbarText));
         }
     }
 }
