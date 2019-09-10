@@ -33,9 +33,13 @@ namespace RpiHelpers
         private void DropActionHandler(object sender, DragEventArgs e)
         {
             var files = (string[])e.Data.GetData("FileDrop");
-            if (files.Length > 0)
+            if (files?.Length > 0)
             {
                 IoC.Get<DropDataService>().Drop(fileNames: files);
+            }
+            else
+            {
+                IoC.Get<SnackbarService>().ShowMessage("Operation not supported.");
             }
 
             Activate();
