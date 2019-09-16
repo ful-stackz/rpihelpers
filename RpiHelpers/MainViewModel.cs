@@ -14,7 +14,7 @@ namespace RpiHelpers
 {
     class MainViewModel : BaseViewModel
     {
-        private const string EmptyTargetPath = "/";
+        private const string EmptyTargetPath = "";
         private const string EmptyDropActionMessage = "Drop file(s) here for actions";
 
         private readonly DropDataService _dropDataService;
