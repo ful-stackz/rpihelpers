@@ -53,7 +53,10 @@ namespace RpiHelpers.Services
                 throw new ArgumentNullException(nameof(targetPath));
             }
 
-            _cmdExecutor.Execute($"{CopyCommand} {sourcePath.Replace('/', '\\')} pi@raspberry.local:~\\{targetPath.Replace('/', '\\')}");
+            var source = EscapeWindowsPath(sourcePath);
+            var target = EscapeUnixPath($"{rpiConfig.ConnectionString}:~/{targetPath}");
+
+            _cmdExecutor.Execute($"{CopyCommand} {source} {target}");
         }
 
         /// <summary>
@@ -116,12 +119,10 @@ namespace RpiHelpers.Services
                 throw new ArgumentNullException(nameof(targetPath));
             }
 
-            var dir = new DirectoryInfo(sourcePath);
-            var files = dir.GetFiles(AllFilesFilter, new EnumerationOptions() { RecurseSubdirectories = true });
-            foreach (var file in files)
-            {
-                string target = file.FullName.Replace(sourcePath, targetPath);
-            }
+            var source = EscapeWindowsPath(sourcePath);
+            var target = EscapeUnixPath($"{rpiConfig.ConnectionString}:~/{targetPath}");
+
+            _cmdExecutor.Execute($"{CopyCommand} -r {source} {target}");
         }
 
         /// <summary>
@@ -160,6 +161,28 @@ namespace RpiHelpers.Services
             {
                 string target = file.FullName.Replace(sourcePath, targetPath);
             }
+        }
+
+        private string EscapeWindowsPath(string path)
+        {
+            string result = path.Trim().Replace('/', '\\');
+            if (result.Contains(' '))
+            {
+                result = $"\"{result}\"";
+            }
+
+            return result;
+        }
+
+        private string EscapeUnixPath(string input)
+        {
+            var result = input.Trim().Replace('\\', '/');
+            if (result.Contains(' '))
+            {
+                result = $"\"{result}\"";
+            }
+
+            return result;
         }
     }
 }
