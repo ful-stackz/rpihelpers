@@ -5,7 +5,7 @@ namespace RpiHelpers.Services
 {
     internal class RpiConfigService
     {
-        private RpiConfig _config;
+        private RpiConfig _config = RpiConfig.Default;
 
         /// <summary>
         /// Raised when the Raspberry Pi configuration has been changed.
