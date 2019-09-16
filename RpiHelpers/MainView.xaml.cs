@@ -26,6 +26,7 @@ namespace RpiHelpers
             InitializeComponent();
             DataContext = new MainViewModel(
                 IoC.Get<RpiFileService>(),
+                IoC.Get<RpiConnectionService>(),
                 IoC.Get<DropDataService>(),
                 IoC.Get<SnackbarService>());
         }

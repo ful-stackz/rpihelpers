@@ -19,6 +19,7 @@ namespace RpiHelpers
 
         private readonly DropDataService _dropDataService;
         private readonly RpiFileService _rpiFileService;
+        private readonly RpiConnectionService _rpiConnectionService;
         private readonly SnackbarService _snackbarService;
 
         private bool _isClearEnabled;
@@ -34,15 +35,20 @@ namespace RpiHelpers
 
         public MainViewModel(
             RpiFileService rpiFileService,
+            RpiConnectionService rpiConnectionService,
             DropDataService dropDataService,
             SnackbarService snackbarService)
         {
             _rpiFileService = rpiFileService ?? throw new ArgumentNullException(nameof(rpiFileService));
+            _rpiConnectionService = rpiConnectionService;
+            _rpiConnectionService.OnStatusChanged += HandleRpiConnectionStatusChanged;
             _dropDataService = dropDataService ?? throw new ArgumentNullException(nameof(dropDataService));
             dropDataService.OnDrop += OnDropHandler;
             _snackbarService = snackbarService ?? throw new ArgumentNullException(nameof(snackbarService));
             _snackbarService.OnMessage += HandleSnackbarChanged;
             _snackbarService.OnMessageExpired += HandleSnackbarChanged;
+
+            _rpiConnectionService.StartService();
         }
 
         public string WindowTitle { get; } = "Raspberry Pi Helpers";
@@ -305,6 +311,11 @@ namespace RpiHelpers
             DropActionMessage = EmptyDropActionMessage;
             IsClearEnabled = false;
             IsDirectoryOptionsEnabled = false;
+        }
+
+        private void HandleRpiConnectionStatusChanged(object sender, EventArgs e)
+        {
+            _snackbarService.ShowMessage($"Raspberry Pi {(_rpiConnectionService.IsConnected ? "connected" : "disconnected")}!");
         }
 
         private void HandleSnackbarChanged(object sender, EventArgs e)

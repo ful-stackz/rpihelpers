@@ -21,6 +21,7 @@ namespace RpiHelpers
             IoC.Register<DropDataService>(new DropDataService());
             IoC.Register<RpiFileService>(new RpiFileService(new CommandExecutor()));
             IoC.Register<RpiConfigService>(new RpiConfigService());
+            IoC.Register<RpiConnectionService>(new RpiConnectionService(new CommandExecutor()));
             IoC.Register<SnackbarService>(
                 new SnackbarService(
                     timerFactory: (action, period) => new Timer(
